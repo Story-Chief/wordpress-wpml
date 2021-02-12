@@ -31,7 +31,7 @@ This plugin requires the main plugin [StoryChief](https://wordpress.org/plugins/
 == Changelog ==
 
 = 1.0.4 =
-* Bugfix: connecting 2 articles broke if the post type was not 'post'
+* Bugfix: connecting 2 articles broke if the post type was not 'post'.
 
 = 1.0.3 =
 * improvement: tested up to WP 5.6
