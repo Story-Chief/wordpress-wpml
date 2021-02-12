@@ -51,7 +51,10 @@ class Storychief_WPML
         // Translate Post
         if ($src_ID && $post_language && $sitepress) {
             $src_trid = $sitepress->get_element_trid($src_ID);
-            $sitepress->set_element_language_details($post_ID, 'post_post',
+
+            $post_type = get_post_type($post_ID);
+
+            $sitepress->set_element_language_details($post_ID, 'post_' . $post_type,
               $src_trid, $post_language);
         }
     }
