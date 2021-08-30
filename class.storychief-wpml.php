@@ -80,8 +80,7 @@ class Storychief_WPML
                 $categories[] = $cat_ID;
             }
 
-            wp_set_post_terms($story['external_id'], $categories, 'category',
-              $append = false);
+            wp_set_post_categories($story['external_id'], $categories, false);
         }
     }
 
@@ -108,8 +107,7 @@ class Storychief_WPML
                 $tags[] = $tag_ID;
             }
 
-            wp_set_post_terms($story['external_id'], $tags, 'post_tag',
-              $append = false);
+            wp_set_post_tags($story['external_id'], $tags, false);
         }
     }
 
