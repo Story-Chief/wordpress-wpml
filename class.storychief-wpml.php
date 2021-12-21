@@ -55,64 +55,78 @@ class Storychief_WPML
             $post_type = get_post_type($post_ID);
 
             $sitepress->set_element_language_details($post_ID, 'post_' . $post_type,
-              $src_trid, $post_language);
+                                                     $src_trid, $post_language);
         }
     }
 
     public static function saveCategories($story)
     {
-        global $sitepress;
         if (isset($story['categories']['data'])) {
-            $categories = [];
-            foreach ($story['categories']['data'] as $category) {
-                if (!$cat_ID = self::findTermLocalized($category['name'],
-                  $sitepress->get_current_language(), 'category')) {
-                    // try to find the category ID for cat with name X in language Y
-                    // if it does not exist. create that sucker
-                    if (!function_exists('wp_insert_category')) {
-                        require_once(ABSPATH . 'wp-admin/includes/taxonomy.php');
-                    }
-                    $cat_ID = wp_insert_category([
-                      'cat_name'          => $category['name'],
-                      'category_nicename' => $category['name'] . ' ' . $sitepress->get_current_language(),
-                    ]);
-                }
-                $categories[] = $cat_ID;
-            }
-
+            $categories = self::mapTerms($story['categories']['data'], 'category', $story, \Storychief\Settings\get_sc_option('category_create'));
             wp_set_post_categories($story['external_id'], $categories, false);
         }
     }
 
     public static function saveTags($story)
     {
-        global $sitepress;
-
         if (isset($story['tags']['data'])) {
-            $tags = [];
-            foreach ($story['tags']['data'] as $tag) {
-                if (!$tag_ID = self::findTermLocalized($tag['name'],
-                  $sitepress->get_current_language(), 'post_tag')) {
-                    // try to find the tag ID for tag with name X in language Y
-                    // if it does not exist. create that sucker
-
-                    if (!function_exists('wp_insert_term')) {
-                        require_once(ABSPATH . 'wp-admin/includes/taxonomy.php');
-                    }
-                    $tag = wp_insert_term($tag['name'], 'post_tag', [
-                      'slug' => $tag['name'] . ' ' . $sitepress->get_current_language(),
-                    ]);
-                    $tag_ID = isset($tag['term_id']) ? $tag['term_id'] : null;
-                }
-                $tags[] = $tag_ID;
-            }
-
+            $tags = self::mapTerms($story['tags']['data'], 'post_tag', $story, \Storychief\Settings\get_sc_option('tag_create'));
             wp_set_post_tags($story['external_id'], $tags, false);
         }
     }
 
+    private static function mapTerms($termsPayload, $taxonomy, $payload, $createIfMissing = false)
+    {
+        global $sitepress;
+
+        $termIds = [];
+        $sourceLang = isset($payload['source']['data']['language']) ? $payload['source']['data']['language'] : null;
+
+        foreach ($termsPayload as $termPayload) {
+
+            $termId = self::findTermLocalized($termPayload['name'], $sitepress->get_current_language(), $taxonomy);
+            if ($termId) {
+                $termIds[] = $termId;
+                continue;
+            }
+
+
+            if($sourceLang) {
+                $sourceTermId = self::findTermLocalized($termPayload['name'], $sourceLang, $taxonomy);
+                $termId = apply_filters( 'wpml_object_id', $sourceTermId, $taxonomy, false, $sitepress->get_current_language()  );
+                if ($termId) {
+                    $termIds[] = $termId;
+                    continue;
+                }
+            }
+
+            if($createIfMissing) {
+                if (!function_exists('wp_insert_category')) {
+                    require_once(ABSPATH . 'wp-admin/includes/taxonomy.php');
+                }
+                $termId = wp_insert_category(
+                  [
+                    'cat_name'          => $termPayload['name'],
+                    'category_nicename' => $termPayload['name'] . ' ' . $sitepress->get_current_language(),
+                  ]
+                );
+                $termIds[] = $termId;
+            }
+        }
+
+        return $termIds;
+    }
+
     private static function findTermLocalized($name, $lang, $taxonomy)
     {
+        global $sitepress;
+        $current_lang = $sitepress->get_current_language();
+
+
+        if($current_lang !== $lang){
+            $sitepress->switch_lang($lang);
+        }
+
         $args = [
           'get'                    => 'all',
           'name'                   => $name,
@@ -121,13 +135,16 @@ class Storychief_WPML
           'update_term_meta_cache' => false,
           'orderby'                => 'none',
           'suppress_filter'        => true,
-          'lang'                   => $lang,
         ];
         $terms = get_terms($args);
         if (is_wp_error($terms) || empty($terms)) {
             return false;
         }
         $term = array_shift($terms);
+
+        if($current_lang !== $lang){
+            $sitepress->switch_lang($current_lang);
+        }
 
         return $term->term_id;
     }
