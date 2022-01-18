@@ -59,45 +59,54 @@ class Storychief_WPML
         }
     }
 
-    public static function saveCategories($story)
+    public static function saveCategories($payload)
     {
-        if (isset($story['categories']['data'])) {
-            $categories = self::mapTerms($story['categories']['data'], 'category', $story, \Storychief\Settings\get_sc_option('category_create'));
-            wp_set_post_categories($story['external_id'], $categories, false);
+        self::setLocale($payload);
+        if (isset($payload['categories']['data'])) {
+            $categories = self::mapTerms($payload['categories']['data'], 'category', $payload, \Storychief\Settings\get_sc_option('category_create'));
+            wp_set_post_categories($payload['external_id'], $categories, false);
         }
     }
 
-    public static function saveTags($story)
+    public static function saveTags($payload)
     {
-        if (isset($story['tags']['data'])) {
-            $tags = self::mapTerms($story['tags']['data'], 'post_tag', $story, \Storychief\Settings\get_sc_option('tag_create'));
-            wp_set_post_tags($story['external_id'], $tags, false);
+        self::setLocale($payload);
+        if (isset($payload['tags']['data'])) {
+            $tags = self::mapTerms($payload['tags']['data'], 'post_tag', $payload, \Storychief\Settings\get_sc_option('tag_create'));
+            wp_set_post_tags($payload['external_id'], $tags, false);
         }
     }
 
     private static function mapTerms($termsPayload, $taxonomy, $payload, $createIfMissing = false)
     {
-        global $sitepress;
-
         $termIds = [];
+        $language = $payload['language'];
         $sourceLang = isset($payload['source']['data']['language']) ? $payload['source']['data']['language'] : null;
 
         foreach ($termsPayload as $termPayload) {
-
-            $termId = self::findTermLocalized($termPayload['name'], $sitepress->get_current_language(), $taxonomy);
+            $termId = self::findTermLocalized($termPayload['name'], $language, $taxonomy);
             if ($termId) {
                 $termIds[] = $termId;
                 continue;
             }
 
-
+            // Check if the term exists in the source language
             if($sourceLang) {
                 $sourceTermId = self::findTermLocalized($termPayload['name'], $sourceLang, $taxonomy);
-                $termId = apply_filters( 'wpml_object_id', $sourceTermId, $taxonomy, false, $sitepress->get_current_language()  );
+                $termId = apply_filters( 'wpml_object_id', $sourceTermId, $taxonomy, false, $language );
                 if ($termId) {
                     $termIds[] = $termId;
                     continue;
                 }
+            }
+
+            // Hailmary lookup the term in any language
+            $sourceTermId = self::findTermLocalized($termPayload['name'], null, $taxonomy);
+            $termId = apply_filters( 'wpml_object_id', $sourceTermId, $taxonomy, false, $language );
+
+            if ($termId) {
+                $termIds[] = $termId;
+                continue;
             }
 
             if($createIfMissing) {
@@ -107,7 +116,7 @@ class Storychief_WPML
                 $termId = wp_insert_category(
                   [
                     'cat_name'          => $termPayload['name'],
-                    'category_nicename' => $termPayload['name'] . ' ' . $sitepress->get_current_language(),
+                    'category_nicename' => $termPayload['name'] . ' ' . $language,
                   ]
                 );
                 $termIds[] = $termId;
@@ -122,9 +131,15 @@ class Storychief_WPML
         global $sitepress;
         $current_lang = $sitepress->get_current_language();
 
-
-        if($current_lang !== $lang){
+        if($current_lang !== $lang && !is_null($lang)){
             $sitepress->switch_lang($lang);
+        }
+
+        if(is_null($lang)){
+            // remove WPML term filters to search language wide
+            remove_filter('get_terms_args', array($sitepress, 'get_terms_args_filter'));
+            remove_filter('get_term', array($sitepress,'get_term_adjust_id'));
+            remove_filter('terms_clauses', array($sitepress,'terms_clauses'));
         }
 
         $args = [
@@ -137,14 +152,23 @@ class Storychief_WPML
           'suppress_filter'        => true,
         ];
         $terms = get_terms($args);
+
+        if(is_null($lang)){
+            // re-apply WPML term filters to search language wide
+            add_filter( 'terms_clauses', array( $sitepress, 'terms_clauses' ), 10, 3 );
+            add_filter( 'get_term', array( $sitepress, 'get_term_adjust_id' ), 1, 1 );
+            add_filter( 'get_terms_args', array( $sitepress, 'get_terms_args_filter' ), 10, 2 );
+        }
+
+        if($current_lang !== $lang && !is_null($lang)){
+            $sitepress->switch_lang($current_lang);
+        }
+
         if (is_wp_error($terms) || empty($terms)) {
             return false;
         }
-        $term = array_shift($terms);
 
-        if($current_lang !== $lang){
-            $sitepress->switch_lang($current_lang);
-        }
+        $term = array_shift($terms);
 
         return $term->term_id;
     }
