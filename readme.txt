@@ -3,7 +3,7 @@ Contributors: storychief
 Tags: StoryChief, WPML
 Requires at least: 4.6
 Tested up to: 6.0
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -29,6 +29,9 @@ This plugin requires the main plugin [StoryChief](https://wordpress.org/plugins/
 == Screenshots ==
 
 == Changelog ==
+
+= 1.0.8 =
+* improvement: tested up to WP 6.4
 
 = 1.0.7 =
 * Bugfix: Tag and category mapping could result in wrong ID's in some edge case.
