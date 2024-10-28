@@ -3,7 +3,7 @@
  * Plugin Name: StoryChief WPML
  * Plugin URI: https://storychief.io/wordpress-wpml
  * Description: This plugin lets StoryChief and WPML work together.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Gregory Claeyssens
  * Author URI: http://storychief.io
  * License: GPL2
@@ -15,7 +15,7 @@ if ( !function_exists( 'add_action' ) ) {
 	exit;
 }
 
-define( 'STORYCHIEF_WPML_VERSION', '1.0.9' );
+define( 'STORYCHIEF_WPML_VERSION', '1.0.10' );
 define( 'STORYCHIEF_WPML__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'STORYCHIEF_WPML__PLUGIN_BASE_NAME', plugin_basename(__FILE__) );
 
