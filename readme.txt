@@ -4,7 +4,7 @@ Tags: StoryChief, WPML
 Requires at least: 5.2
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -30,6 +30,9 @@ This plugin requires the main plugin [StoryChief](https://wordpress.org/plugins/
 == Screenshots ==
 
 == Changelog ==
+
+= 1.0.12 =
+* Fixed a warning when StoryChief ACF and StoryChief WPML are both active.
 
 = 1.0.11 =
 * improvement: tested up to WP 7.0
